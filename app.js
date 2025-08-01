@@ -48,6 +48,7 @@ app.use(session({
 const FILE_PATH = path.join(__dirname, 'info.json')
 
 
+
 //conection mongodb 
 const uri = "mongodb://localhost:27017/dbLogin"
     const client = new MongoClient(uri);
@@ -57,14 +58,13 @@ const uri = "mongodb://localhost:27017/dbLogin"
         try{
            await client.connect()
            db =  client.db('dbLogin')
-    
+            usersCollection = db.collection('users')
         console.log('Connecttion ok');
         }catch(err)  {
         console.log('erreur de la connectionn')
     }
 
         }
-
         connectionMongo();
     
 
@@ -90,6 +90,8 @@ function admin(req, res, next) {
     }
     next();
 }
+
+
 
 
 app.get('/', (req,res) => {
@@ -137,7 +139,6 @@ app.get('/createCompte', (req,res) => {
 app.post('/createCompte', async (req,res) => {
 
 
-     // const {mail, mp, mpConf} = req.body
 
 
      //ajout a mongodb compass
@@ -155,20 +156,29 @@ app.post('/createCompte', async (req,res) => {
             
         }
 
+        const users = await usersCollection.find({}).toArray()
+        const uzerExist = users.find(users => users.mail=== req.body.mail)
+
+        if(uzerExist){
+            return res.render('SignIn', { errorMessage:'Un compte avec ces coordonnées existe déja'})
+        }
+
         bcrypt.hash(mp, salt, (error,hash) => {
             if(error){
             return console.error(err);
             }
             console.log("hash: ok ;)" + hash)
-
+    
             bcrypt.compare(mp, hash, (error, result) => {
                 if(error){
                     return console.log(error)
                 }
-
+    
                 console.log('mot de passe ok ?', result)
             })
         })
+
+        
         const resultat = await db.collection('users').insertOne({mail, mp, mpConf});
            return res.render('login')
             
@@ -181,17 +191,6 @@ app.post('/createCompte', async (req,res) => {
 
     
 
-    //  const uzer = lireData();
-
-    //  uzer.push({mail,mp,mpConf})
-
-    //  lireData(uzer)
-    //  ecrireData(uzer)
-
-    //  console.log(uzer)
-
-    //  res.send( uzer)
-    
 })
 
 
@@ -208,15 +207,7 @@ app.post('/auth', async (req,res)=> {
 
     let nextId = uuidv4();
     const {inputMail, inputPassword} = req.body
-    
-     // const uzer = lireData();
-
-
-     // console.log(mails)
-
-     // lireData(uzer)
-
-    //  console.log(data[0].mp)
+ 
 
     let authUzer = await usersCollection.findOne({mail: inputMail, mp: inputPassword });
 
@@ -228,23 +219,7 @@ app.post('/auth', async (req,res)=> {
         res.render('SignIn', {errorMessage: "Compte introuvable, veuillez en créer un !"})
         
     }
-    //  const InfoOk = data.find(item => item.mail === mailA &&
-    //     item.mp === mpA && item.mpConf === mpConfA
-    //  )
-
-
-     
-
-    //     if(InfoOk){
-
-            
-    //         req.session.uzer = InfoOk.mail;
-    //         res.cookie('admin', 'true', { maxAge: 3600, httpOnly: true, path: '/admin' });
-    //         res.redirect('/admin');
-       
-    //  }else{
-    //     res.send("retry ...")
-    //  }
+    
 
 })
 
